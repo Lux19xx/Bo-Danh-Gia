@@ -1,0 +1,1863 @@
+# -*- coding: utf-8 -*-
+import os, json
+
+html_content = '''<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Đánh Giá Thường Xuyên - Học Phần VI | Đọc Hiểu Chỉ Số Tài Chính & Nhận Diện Rủi Ro Định Giá</title>
+    <style>
+        :root {
+            --primary: #1a365d;
+            --primary-light: #2b6cb0;
+            --secondary: #2c5282;
+            --accent: #d69e2e;
+            --success: #38a169;
+            --danger: #e53e3e;
+            --warning: #dd6b20;
+            --bg: #f7fafc;
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding-bottom: 60px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
+            color: white;
+            padding: 24px 20px;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-title h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .header-title p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .meta-badges {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 25px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        /* Controls Panel */
+        .controls-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 16px 20px;
+        }
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn {
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary { background: var(--primary-light); color: white; }
+        .btn-primary:hover { background: var(--primary); }
+        .btn-outline { background: transparent; border-color: var(--primary-light); color: var(--primary-light); }
+        .btn-outline.active, .btn-outline:hover { background: var(--primary-light); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #2f855a; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #c53030; }
+
+        /* Timer Widget */
+        .timer-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #edf2f7;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+        .timer-warning {
+            background: #fed7d7;
+            color: var(--danger);
+            animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        /* Progress Bar */
+        .progress-wrapper {
+            margin: 15px 0 25px 0;
+        }
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3182ce, #38a169);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Question Box */
+        .question-item {
+            margin-bottom: 25px;
+            padding-bottom: 25px;
+            border-bottom: 1px dashed var(--border);
+        }
+        .question-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .q-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            gap: 10px;
+        }
+        .q-number {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .q-tag {
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            background: #ebf8ff;
+            color: #2b6cb0;
+            font-weight: 600;
+        }
+        .q-text {
+            font-size: 1.02rem;
+            font-weight: 600;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            color: #1a202c;
+        }
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .option-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: #faf5ff00;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+        .option-label:hover {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+        }
+        .option-label.selected {
+            background: #ebf8ff;
+            border-color: #3182ce;
+            font-weight: 600;
+        }
+        .option-label.correct {
+            background: #f0fff4 !important;
+            border-color: #38a169 !important;
+            color: #22543d;
+        }
+        .option-label.wrong {
+            background: #fff5f5 !important;
+            border-color: #e53e3e !important;
+            color: #742a2a;
+        }
+        .option-input {
+            margin-top: 4px;
+        }
+
+        /* Explanation Box */
+        .explanation-box {
+            margin-top: 15px;
+            padding: 14px 18px;
+            border-radius: 6px;
+            background: #f7fafc;
+            border-left: 4px solid var(--primary-light);
+            font-size: 0.92rem;
+            display: none;
+        }
+        .explanation-box.show {
+            display: block;
+        }
+        .explanation-title {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Essay Question & Rubric */
+        .essay-textarea {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+            margin-bottom: 12px;
+        }
+        .rubric-container {
+            background: #f8fafc;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            padding: 14px;
+            margin-top: 10px;
+        }
+        .rubric-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 8px;
+        }
+        .rubric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        @media (max-width: 768px) {
+            .rubric-grid { grid-template-columns: 1fr; }
+        }
+        .rubric-cell {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 8px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .rubric-cell:hover {
+            border-color: var(--primary-light);
+        }
+        .rubric-cell.active {
+            border-color: var(--success);
+            background: #f0fff4;
+            font-weight: 600;
+        }
+        .rubric-level {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 4px;
+            color: var(--primary);
+        }
+
+        /* Sidebar Palette */
+        .sidebar {
+            position: sticky;
+            top: 105px;
+            height: fit-content;
+        }
+        .palette-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .p-btn {
+            height: 36px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .p-btn:hover { background: #edf2f7; }
+        .p-btn.answered { background: #ebf8ff; border-color: #3182ce; color: #2b6cb0; }
+        .p-btn.flagged { border-color: var(--accent); background: #fefcbf; color: #744210; }
+        .p-btn.correct { background: #c6f6d5; border-color: #38a169; color: #22543d; }
+        .p-btn.wrong { background: #fed7d7; border-color: #e53e3e; color: #742a2a; }
+
+        .palette-legend {
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--border); }
+
+        /* Dashboard Results View */
+        .results-modal {
+            display: none;
+        }
+        .results-modal.show {
+            display: block;
+        }
+        .score-hero {
+            text-align: center;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+            border-radius: var(--radius);
+            margin-bottom: 25px;
+            border: 1px solid #b2f5ea;
+        }
+        .score-value {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1;
+        }
+        .score-subtitle {
+            font-size: 1.1rem;
+            color: var(--secondary);
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .competency-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .comp-card {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 6px;
+        }
+        .comp-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .comp-bar {
+            height: 10px;
+            background: #edf2f7;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+        .comp-bar-fill {
+            height: 100%;
+            background: var(--primary-light);
+            border-radius: 5px;
+        }
+
+        .pedagogical-advice {
+            background: #fffaf0;
+            border: 1px solid #fbd38d;
+            border-left: 5px solid #dd6b20;
+            padding: 18px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .advice-title {
+            font-weight: 700;
+            color: #9c4221;
+            margin-bottom: 6px;
+            font-size: 1rem;
+        }
+
+        /* Print styles */
+        @media print {
+            header { position: static; background: none; color: black; box-shadow: none; border-bottom: 2px solid #000; padding: 10px 0; }
+            .badge { border: 1px solid #000; color: #000; }
+            .controls-card, .sidebar, .btn, .timer-box { display: none !important; }
+            .container { grid-template-columns: 1fr; margin: 0; padding: 0; }
+            .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+            .explanation-box { display: block !important; border-left: 2px solid #000; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-container">
+            <div class="header-title">
+                <h1>HỆ THỐNG ĐÁNH GIÁ THƯỜNG XUYÊN TRỰC TUYẾN</h1>
+                <p>Chuyên đề: Đọc hiểu chỉ số tài chính và nhận diện rủi ro khi định giá cổ phiếu</p>
+            </div>
+            <div class="meta-badges">
+                <span class="badge">Học phần VI: SP &amp; CN Dạy học ĐH</span>
+                <span class="badge">GV: Thầy Trần Tuấn Vinh</span>
+                <span class="badge">HV: Nguyễn Bội Ngọc (STT: 27)</span>
+                <span class="badge">Lớp: K12.2026.TC.NVSP Lớp 02</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Main Content Area -->
+        <main>
+            <!-- Controls Bar -->
+            <div class="card controls-card">
+                <div class="mode-selector">
+                    <button class="btn btn-outline active" id="btnModeTest" onclick="switchMode('test')">Chế độ Kiểm tra (25 phút)</button>
+                    <button class="btn btn-outline" id="btnModePractice" onclick="switchMode('practice')">Chế độ Luyện tập (50 câu)</button>
+                </div>
+                <div class="timer-box" id="timerBox">
+                    <span id="timerIcon">⏱️</span>
+                    <span id="timeDisplay">12:00</span>
+                </div>
+                <div>
+                    <button class="btn btn-success" id="btnSubmitQuiz" onclick="submitAssessment()">Nộp bài đánh giá</button>
+                    <button class="btn btn-outline" id="btnResetQuiz" onclick="resetAssessment()" style="display:none;">Làm lại</button>
+                    <button class="btn btn-primary" id="btnPrintReport" onclick="window.print()" style="display:none;">In kết quả</button>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-wrapper">
+                <div class="progress-labels">
+                    <span id="progressText">Tiến độ làm bài: 0/10 câu</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <!-- Results View (Dashboard) -->
+            <div class="card results-modal" id="resultsDashboard">
+                <div class="score-hero">
+                    <div class="score-value" id="finalScoreDisplay">0.0</div>
+                    <div class="score-subtitle" id="finalLevelDisplay">Đang tính toán kết quả...</div>
+                    <p style="margin-top:8px; font-size:0.9rem; color:#4a5568;" id="finalSummaryText">
+                        Điểm số bao gồm kết quả trắc nghiệm khách quan tự động và điểm đánh giá tự luận theo Rubric.
+                    </p>
+                </div>
+
+                <h3 style="margin-bottom:12px; color:var(--primary);">Phân tích Năng lực theo 5 Nhóm Chuyên môn:</h3>
+                <div class="competency-grid" id="competencyBreakdown">
+                    <!-- Dynamic Competency Cards -->
+                </div>
+
+                <div class="pedagogical-advice" id="pedagogicalAdviceBox">
+                    <div class="advice-title">💡 Đề xuất can thiệp và điều chỉnh hoạt động học tập (Feedback &amp; Feedforward):</div>
+                    <div id="adviceContent">Hệ thống đang tổng hợp dữ liệu nhận thức...</div>
+                </div>
+            </div>
+
+            <!-- Questions Container -->
+            <div class="card" id="quizContainer">
+                <!-- Dynamically rendered questions -->
+            </div>
+        </main>
+
+        <!-- Sidebar Navigation Palette -->
+        <aside class="sidebar">
+            <div class="card">
+                <div class="palette-title">
+                    <span>Mục lục câu hỏi</span>
+                    <span id="paletteCount" style="font-size:0.85rem; color:var(--text-muted);">(10 câu)</span>
+                </div>
+                <div class="palette-grid" id="paletteGrid">
+                    <!-- Dynamic Question Buttons -->
+                </div>
+                <div class="palette-legend">
+                    <div class="legend-item"><div class="legend-dot" style="background:white;"></div> Chưa làm</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#ebf8ff; border-color:#3182ce;"></div> Đã chọn</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#c6f6d5; border-color:#38a169;"></div> Đúng</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#fed7d7; border-color:#e53e3e;"></div> Sai</div>
+                </div>
+                <div style="margin-top:15px; font-size:0.8rem; color:var(--text-muted); line-height:1.4;">
+                    * Lưu ý: Trong chế độ kiểm tra 25 phút, bài thi trắc nghiệm được chấm tự động. Câu tự luận được chấm điểm bởi giảng viên thông qua bộ Rubric tích hợp sẵn.
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // QUESTION BANK: 50 VERIFIED QUESTIONS (45 MCQs + 5 ESSAYS)
+        const BANK_50 = [
+        {
+                "id": 1,
+                "group": "Nhóm 1: Đọc hiểu Báo cáo tài chính",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Mục đích chính của Bảng cân đối kế toán (Balance Sheet) trong hệ thống báo cáo tài chính là phản ánh điều gì?",
+                "options": [
+                        "A. Hiệu quả kinh doanh và khả năng sinh lời trong một kỳ kế toán.",
+                        "B. Tình hình tài sản, nợ phải trả và vốn chủ sở hữu tại một thời điểm nhất định.",
+                        "C. Toàn bộ dòng tiền vào và ra của doanh nghiệp trong suốt năm tài chính.",
+                        "D. Kế hoạch phân phối lợi nhuận và cổ tức cho cổ đông trong tương lai."
+                ],
+                "answer": 1,
+                "explanation": "Bảng cân đối kế toán là một 'bức ảnh tĩnh' chụp lại toàn bộ nguồn lực kinh tế (Tài sản) và nguồn hình thành tài sản (Nợ phải trả + Vốn chủ sở hữu) của doanh nghiệp tại một thời điểm xác định (cuối quý hoặc cuối năm). Hiệu quả kinh doanh thuộc Báo cáo Kết quả Kinh doanh; dòng tiền thuộc Báo cáo Lưu chuyển Tiền tệ."
+        },
+        {
+                "id": 2,
+                "group": "Nhóm 1: Đọc hiểu Báo cáo tài chính",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Theo nguyên tắc kế toán dồn tích (Accrual Basis), doanh thu và chi phí được ghi nhận vào thời điểm nào?",
+                "options": [
+                        "A. Chỉ được ghi nhận khi doanh nghiệp đã thực tế thu hoặc chi tiền mặt qua quỹ hoặc tài khoản ngân hàng.",
+                        "B. Được ghi nhận tại thời điểm phát sinh giao dịch và chuyển giao phần lớn rủi ro, lợi ích kinh tế, không phụ thuộc vào thời điểm thực tế thu hoặc chi tiền.",
+                        "C. Chỉ được ghi nhận vào ngày kết thúc năm tài chính khi có biên bản đối soát công nợ toàn diện.",
+                        "D. Được ghi nhận linh hoạt theo quyết định của Hội đồng quản trị nhằm tối ưu hóa nghĩa vụ thuế."
+                ],
+                "answer": 1,
+                "explanation": "Nguyên tắc dồn tích yêu cầu ghi nhận doanh thu khi hoàn thành nghĩa vụ thực hiện (chuyển giao hàng hóa/dịch vụ) và chi phí phát sinh tương ứng để tạo ra doanh thu đó (nguyên tắc phù hợp), bất kể tiền đã thu hay chi hay chưa. Đây là lý do cốt lõi tạo ra khoảng cách giữa Lợi nhuận kế toán và Dòng tiền thuần."
+        },
+        {
+                "id": 3,
+                "group": "Nhóm 1: Đọc hiểu Báo cáo tài chính",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Khoản mục 'Người mua trả tiền trước ngắn hạn' (Unearned Revenue) trên Bảng cân đối kế toán thể hiện điều gì?",
+                "options": [
+                        "A. Một khoản nợ phải thu của doanh nghiệp đối với khách hàng mua chịu.",
+                        "B. Doanh thu đã hoàn thành việc cung cấp dịch vụ và đủ điều kiện hạch toán lợi nhuận ngay.",
+                        "C. Nghĩa vụ nợ phải trả bằng hàng hóa hoặc dịch vụ trong tương lai đối với khách hàng đã thanh toán trước tiền.",
+                        "D. Khoản đầu tư tài chính ngắn hạn mang lại lợi tức cố định cho doanh nghiệp."
+                ],
+                "answer": 2,
+                "explanation": "Khi khách hàng trả tiền trước, doanh nghiệp chưa chuyển giao hàng hóa/dịch vụ nên chưa được ghi nhận doanh thu, mà phải ghi nhận là Nợ phải trả (cam kết thực hiện nghĩa vụ trong tương lai). Trong ngành bất động sản hoặc phần mềm SaaS, chỉ số này tăng mạnh là tín hiệu tích cực về doanh thu tương lai."
+        },
+        {
+                "id": 4,
+                "group": "Nhóm 1: Đọc hiểu Báo cáo tài chính",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Hiện tượng Doanh thu thuần tăng 20% nhưng Khoản phải thu khách hàng tăng tới 85% trong năm tài chính phát đi tín hiệu rủi ro gì?",
+                "options": [
+                        "A. Doanh nghiệp đang thắt chặt chính sách bán hàng để hạn chế nợ xấu phát sinh.",
+                        "B. Doanh nghiệp có thể đang nới lỏng chính sách bán chịu quá mức để kích cầu doanh thu ảo, hoặc áp dụng thủ thuật đẩy hàng tồn kho cho đại lý (channel stuffing).",
+                        "C. Khách hàng đang chuyển sang thanh toán sớm để nhận chiết khấu thương mại lớn.",
+                        "D. Khả năng thanh toán của doanh nghiệp được củng cố vượt bậc nhờ dòng tiền dồi dào."
+                ],
+                "answer": 1,
+                "explanation": "Khi khoản phải thu tăng nhanh gấp nhiều lần tốc độ tăng doanh thu, chất lượng doanh thu bị suy giảm nghiêm trọng. Lợi nhuận ghi nhận phần lớn nằm trên giấy tờ nợ của khách hàng chứ chưa thu được tiền thực, tiềm ẩn nguy cơ phải trích lập dự phòng nợ phải thu khó đòi khổng lồ trong các kỳ sau."
+        },
+        {
+                "id": 5,
+                "group": "Nhóm 1: Đọc hiểu Báo cáo tài chính",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Khoản mục 'Chi phí trả trước dài hạn' (Prepaid Expenses) khác biệt căn bản như thế nào so với 'Chi phí ghi nhận trong kỳ'?",
+                "options": [
+                        "A. Chi phí trả trước là số tiền đã chi ra nhưng mang lại lợi ích kinh tế cho nhiều kỳ kế toán tương lai, do đó được vốn hóa thành tài sản và phân bổ dần.",
+                        "B. Chi phí trả trước là một khoản nợ vay dài hạn ngân hàng chưa đến hạn trả.",
+                        "C. Chi phí trả trước làm suy giảm trực tiếp vốn chủ sở hữu ngay tại thời điểm thanh toán hóa đơn.",
+                        "D. Chi phí trả trước là khoản lợi nhuận giữ lại được trích lập cho quỹ phúc lợi xã hội."
+                ],
+                "answer": 0,
+                "explanation": "Chi phí trả trước (ví dụ: tiền thuê đất trả một lần cho nhiều năm, chi phí công cụ dụng cụ lớn) chưa được đưa hết vào chi phí trong kỳ vì tuân thủ nguyên tắc phù hợp; nó được ghi nhận là Tài sản trên Bảng cân đối kế toán và phân bổ dần vào chi phí các năm sau."
+        },
+        {
+                "id": 6,
+                "group": "Nhóm 1: Đọc hiểu Báo cáo tài chính",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Trên Báo cáo lưu chuyển tiền tệ, dòng tiền thuần từ hoạt động đầu tư (CFI) âm liên tục trong 3 năm của một công ty sản xuất thường phản ánh điều gì?",
+                "options": [
+                        "A. Doanh nghiệp đang cận kề nguy cơ phá sản vì tiền bạc bị thất thoát mất kiểm soát.",
+                        "B. Doanh nghiệp đang tích cực mở rộng công suất, mua sắm máy móc và xây dựng nhà xưởng mới (Capex) để đón đầu chu kỳ tăng trưởng.",
+                        "C. Ban điều hành đang bán tháo tài sản cố định cũ để trả nợ vay ngân hàng.",
+                        "D. Hoạt động kinh doanh cốt lõi của công ty hoàn toàn không tạo ra được lợi nhuận."
+                ],
+                "answer": 1,
+                "explanation": "Đối với một doanh nghiệp tăng trưởng hoặc sản xuất công nghiệp, dòng tiền đầu tư CFI âm là hoàn toàn bình thường và lành mạnh nếu dòng tiền chi ra phục vụ mua sắm tài sản cố định (Capex) nhằm gia tăng năng lực sản xuất trong tương lai, miễn là dòng tiền kinh doanh (CFO) đủ bù đắp hoặc có nguồn tài trợ hợp lý."
+        },
+        {
+                "id": 7,
+                "group": "Nhóm 1: Đọc hiểu Báo cáo tài chính",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Nếu doanh nghiệp thay đổi phương pháp khấu hao tài sản cố định từ đường thẳng sang khấu hao nhanh (accelerated), điều gì sẽ xảy ra trong năm đầu tiên?",
+                "options": [
+                        "A. Dòng tiền thuần từ hoạt động kinh doanh (CFO) sụt giảm mạnh.",
+                        "B. Lợi nhuận kế toán sau thuế giảm sút nhưng dòng tiền thực tế không đổi hoặc tăng lên nhờ hiệu ứng lá chắn thuế (tax shield).",
+                        "C. Doanh thu thuần của doanh nghiệp bị sụt giảm tương ứng với tỷ lệ khấu hao tăng.",
+                        "D. Giá trị còn lại của tài sản cố định trên Bảng cân đối kế toán tăng vọt."
+                ],
+                "answer": 1,
+                "explanation": "Khấu hao là chi phí phi tiền mặt (non-cash expense). Khấu hao nhanh làm tăng chi phí kế toán năm đầu, kéo lợi nhuận kế toán trước thuế và sau thuế giảm xuống. Tuy nhiên, vì lợi nhuận tính thuế giảm nên tiền thuế TNDN thực nộp giảm đi, giúp doanh nghiệp tiết kiệm tiền mặt (dòng tiền thực tế tăng lên)."
+        },
+        {
+                "id": 8,
+                "group": "Nhóm 1: Đọc hiểu Báo cáo tài chính",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Phần 'Thuyết minh báo cáo tài chính' (Notes to Financial Statements) giữ vai trò then chốt nào trong định giá cổ phiếu?",
+                "options": [
+                        "A. Chỉ là tài liệu thủ tục thứ yếu, nhà phân tích chỉ cần quan tâm đến các bảng biểu số liệu chính.",
+                        "B. Cung cấp chi tiết các giả định kế toán, chính sách ghi nhận doanh thu, các khoản nợ tiềm tàng, cam kết bảo lãnh ngoại bảng và giao dịch với bên liên quan.",
+                        "C. Dự báo giá mục tiêu của cổ phiếu trong 12 tháng tới dựa trên khuyến nghị của ban lãnh đạo.",
+                        "D. Thay thế hoàn toàn cho Báo cáo tài chính kiểm toán độc lập của cơ quan quản lý nhà nước."
+                ],
+                "answer": 1,
+                "explanation": "Thuyết minh BCTC là nơi chứa đựng các thông tin chất lượng nhất để đánh giá rủi ro: chính sách kế toán, tuổi nợ phải thu, chi tiết danh mục hàng tồn kho, cam kết nợ ngoài bảng cân đối, tranh chấp pháp lý tiềm ẩn và giao dịch với các bên liên quan. Không thể định giá cổ phiếu chính xác nếu bỏ qua Thuyết minh BCTC."
+        },
+        {
+                "id": 9,
+                "group": "Nhóm 1: Đọc hiểu Báo cáo tài chính",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Doanh nghiệp ghi nhận khoản 'Thu nhập khác' đột biến chiếm 65% tổng lợi nhuận trước thuế từ việc chuyển nhượng quyền sử dụng đất trụ sở cũ. Khi định giá P/E, nhà phân tích cần xử lý số liệu này như thế nào?",
+                "options": [
+                        "A. Giữ nguyên toàn bộ lợi nhuận vì đây là thu nhập hợp pháp đã phản ánh trên BCTC kiểm toán.",
+                        "B. Loại trừ khoản thu nhập bất thường (one-off) này ra khỏi lợi nhuận cốt lõi (Normalized Earnings) để tránh định giá sai lầm theo chỉ số P/E thấp giả tạo.",
+                        "C. Nhân đôi giá trị khoản thu nhập này để phản ánh năng lực tạo đột biến của ban điều hành.",
+                        "D. Bỏ qua định giá P/E và chuyển sang định giá theo mệnh giá danh nghĩa 10.000 đồng."
+                ],
+                "answer": 1,
+                "explanation": "Lợi nhuận từ bán tài sản cố định hoặc thanh lý bất động sản trụ sở chỉ phát sinh một lần (không bền vững). Nếu dùng P/E dựa trên EPS đột biến này, P/E sẽ trông rất 'rẻ' (bẫy giá trị). Nhà phân tích chuyên nghiệp bắt buộc phải chuẩn hóa lợi nhuận cốt lõi (Normalized Earnings) bằng cách loại trừ khoản thu nhập bất thường này."
+        },
+        {
+                "id": 10,
+                "group": "Nhóm 1: Đọc hiểu Báo cáo tài chính",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Ý kiến kiểm toán 'Ngoại trừ' (Qualified Opinion) hoặc 'Từ chối đưa ra ý kiến' (Disclaimer of Opinion) phát đi tín hiệu cảnh báo gì cho nhà phân tích?",
+                "options": [
+                        "A. Báo cáo tài chính hoàn toàn phản ánh trung thực và hợp lý trên tất cả các khía cạnh trọng yếu.",
+                        "B. Kiểm toán viên không thu thập đủ bằng chứng kiểm toán thích hợp hoặc phát hiện các sai sót trọng yếu chưa được ban lãnh đạo điều chỉnh, tiềm ẩn rủi ro số liệu bị bóp méo.",
+                        "C. Doanh nghiệp có lợi thế cạnh tranh xuất sắc đến mức chuẩn mực kế toán hiện hành không thể bao quát.",
+                        "D. Cổ phiếu được khuyến nghị mua vào ngay lập tức do doanh nghiệp có tính bảo mật cao."
+                ],
+                "answer": 1,
+                "explanation": "Ý kiến kiểm toán không phải là 'Chấp nhận toàn phần' (Unqualified) là lá cờ đỏ (red flag) nghiêm trọng nhất. Ý kiến ngoại trừ hoặc từ chối đưa ra ý kiến chỉ ra rằng có những khoản mục trọng yếu không thể xác minh độ tin cậy, làm mất đi tính vững chắc của mọi mô hình định giá dựa trên số liệu BCTC đó."
+        },
+        {
+                "id": 11,
+                "group": "Nhóm 2: Phân tích các chỉ số tài chính",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Doanh nghiệp M có Thị giá 36.000 đ/cổ phiếu, Lợi nhuận sau thuế năm 2025 là 150 tỷ đồng, số lượng cổ phiếu phổ thông đang lưu hành bình quân là 50 triệu cổ phiếu. Chỉ số P/E của cổ phiếu M là:",
+                "options": [
+                        "A. 8,5 lần",
+                        "B. 10,0 lần",
+                        "C. 12,0 lần",
+                        "D. 15,0 lần"
+                ],
+                "answer": 2,
+                "explanation": "Thu nhập trên mỗi cổ phần: EPS = 150.000.000.000 đ / 50.000.000 CP = 3.000 đồng/CP. Chỉ số P/E = Thị giá / EPS = 36.000 / 3.000 = 12,0 lần."
+        },
+        {
+                "id": 12,
+                "group": "Nhóm 2: Phân tích các chỉ số tài chính",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Chỉ số P/B (Price-to-Book) đo lường mối tương quan nào trong định giá doanh nghiệp?",
+                "options": [
+                        "A. Thị giá cổ phiếu so với doanh thu thuần trên mỗi cổ phần.",
+                        "B. Thị giá cổ phiếu so với giá trị sổ sách của vốn chủ sở hữu trên mỗi cổ phần (Book Value Per Share - BVPS).",
+                        "C. Lợi nhuận sau thuế chia cho tổng tài sản bình quân của doanh nghiệp.",
+                        "D. Tổng nợ vay ngân hàng chia cho giá trị vốn hóa thị trường của công ty."
+                ],
+                "answer": 1,
+                "explanation": "P/B so sánh giá trị thị trường của công ty với giá trị tài sản ròng ghi sổ (Vốn chủ sở hữu = Tổng tài sản - Nợ phải trả). Chỉ số này đặc biệt hữu dụng khi định giá các doanh nghiệp thâm dụng tài sản (ngân hàng, bảo hiểm, bất động sản, sản xuất thép)."
+        },
+        {
+                "id": 13,
+                "group": "Nhóm 2: Phân tích các chỉ số tài chính",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Theo mô hình phân tích DuPont 3 nhân tố, chỉ số Tỷ suất sinh lời trên vốn chủ sở hữu (ROE) được phân rã thành tích của ba tỷ số nào?",
+                "options": [
+                        "A. Biên lợi nhuận ròng (Net Margin) × Vòng quay tổng tài sản (Asset Turnover) × Hệ số nhân vốn chủ sở hữu (Equity Multiplier).",
+                        "B. Doanh thu thuần × Vốn lưu động ròng × Tỷ số thanh toán hiện hành.",
+                        "C. Biên lợi nhuận gộp × Chi phí sử dụng vốn × Tỷ số nợ trên tài sản.",
+                        "D. Tỷ suất sinh lời trên tài sản (ROA) × Tỷ lệ chi trả cổ tức × P/E ngành."
+                ],
+                "answer": 0,
+                "explanation": "Mô hình DuPont 3 nhân tố: ROE = (Lợi nhuận ròng / Doanh thu) × (Doanh thu / Tổng tài sản) × (Tổng tài sản / Vốn chủ sở hữu) = Biên lợi nhuận ròng × Vòng quay tài sản × Đòn bẩy tài chính. Mô hình này giúp nhận diện bản chất nguồn gốc tạo ra ROE."
+        },
+        {
+                "id": 14,
+                "group": "Nhóm 2: Phân tích các chỉ số tài chính",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Doanh nghiệp có chỉ số ROE tăng mạnh từ 13% lên 24%, nhưng Biên lợi nhuận ròng và Vòng quay tài sản đều đi ngang hoặc giảm nhẹ. Động lực chính khiến ROE tăng đột biến là gì?",
+                "options": [
+                        "A. Doanh nghiệp cắt giảm thành công chi phí quản lý doanh nghiệp và chi phí bán hàng.",
+                        "B. Doanh nghiệp gia tăng đáng kể việc sử dụng đòn bẩy tài chính (vay nợ nhiều hơn để mở rộng tổng tài sản).",
+                        "C. Năng suất khai thác tài sản cố định trong nhà máy tăng trưởng vượt bậc.",
+                        "D. Thị phần tiêu thụ sản phẩm trên thị trường được mở rộng nhanh chóng."
+                ],
+                "answer": 1,
+                "explanation": "Dựa trên mô hình DuPont: Nếu Biên lợi nhuận ròng và Vòng quay tài sản không tăng mà ROE lại tăng vọt, thì duy nhất nhân tố thứ 3 là Hệ số nhân vốn chủ sở hữu (Assets/Equity) đã tăng mạnh. Điều này chứng minh ROE cao được đánh đổi bằng việc gánh thêm rủi ro nợ vay tài chính."
+        },
+        {
+                "id": 15,
+                "group": "Nhóm 2: Phân tích các chỉ số tài chính",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Công ty N có Tổng tài sản là 2.500 tỷ đồng và Vốn chủ sở hữu là 1.000 tỷ đồng. Hệ số nhân vốn chủ sở hữu (Equity Multiplier) của N là:",
+                "options": [
+                        "A. 1,5 lần",
+                        "B. 2,0 lần",
+                        "C. 2,5 lần",
+                        "D. 0,4 lần"
+                ],
+                "answer": 2,
+                "explanation": "Hệ số nhân vốn chủ sở hữu = Tổng tài sản / Vốn chủ sở hữu = 2.500 / 1.000 = 2,5 lần (tương ứng với Tỷ số Nợ / Vốn chủ sở hữu D/E = 1.500 / 1.000 = 1,5 lần)."
+        },
+        {
+                "id": 16,
+                "group": "Nhóm 2: Phân tích các chỉ số tài chính",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Tại sao chỉ số ROIC (Return on Invested Capital) thường được các nhà phân tích chuyên nghiệp đánh giá cao hơn ROE khi đánh giá hiệu quả kinh doanh cốt lõi?",
+                "options": [
+                        "A. ROIC chỉ tính toán trên lợi nhuận tài chính thu được từ các khoản tiền gửi ngắn hạn.",
+                        "B. ROIC đo lường hiệu quả sinh lời trên toàn bộ nguồn vốn hoạt động (bao gồm cả nợ vay chịu lãi và vốn chủ), không bị bóp méo bởi việc lạm dụng đòn bẩy nợ như ROE.",
+                        "C. ROIC luôn luôn có giá trị cao gấp đôi ROE đối với mọi loại hình doanh nghiệp.",
+                        "D. ROIC không chịu ảnh hưởng bởi biến động giá vốn hàng bán và doanh thu."
+                ],
+                "answer": 1,
+                "explanation": "ROE có thể bị 'thổi phồng' giả tạo bằng cách vay nợ ồ ạt hoặc mua lại cổ phiếu quỹ làm giảm vốn chủ. Trong khi đó, ROIC = NOPAT / Vốn đầu tư (Nợ vay có lãi + Vốn chủ sở hữu - Tiền mặt dư thừa), phản ánh chính xác hiệu quả vận hành thực tế của tài sản kinh doanh cốt lõi bất kể cấu trúc vốn tài trợ."
+        },
+        {
+                "id": 17,
+                "group": "Nhóm 2: Phân tích các chỉ số tài chính",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Doanh nghiệp K có Doanh thu thuần đạt 600 tỷ đồng, Giá vốn hàng bán là 420 tỷ đồng. Biên lợi nhuận gộp (Gross Margin) của doanh nghiệp K là:",
+                "options": [
+                        "A. 25,0%",
+                        "B. 30,0%",
+                        "C. 42,8%",
+                        "D. 70,0%"
+                ],
+                "answer": 1,
+                "explanation": "Lợi nhuận gộp = Doanh thu thuần - Giá vốn hàng bán = 600 - 420 = 180 tỷ đồng. Biên lợi nhuận gộp = 180 / 600 = 30,0%."
+        },
+        {
+                "id": 18,
+                "group": "Nhóm 2: Phân tích các chỉ số tài chính",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Biên lợi nhuận gộp của một doanh nghiệp bán lẻ liên tục sụt giảm từ 28% xuống 18% trong 3 năm qua, dù doanh thu thuần vẫn tăng nhẹ. Hiện tượng này chỉ ra điều gì?",
+                "options": [
+                        "A. Doanh nghiệp đang kiểm soát giá vốn nguyên vật liệu đầu vào rất xuất sắc.",
+                        "B. Doanh nghiệp đang đối mặt với áp lực cạnh tranh gay gắt, chi phí đầu vào tăng cao hoặc bị mất quyền định giá (pricing power), buộc phải giảm giá để giữ chân khách hàng.",
+                        "C. Thuế suất thu nhập doanh nghiệp ưu đãi đã hết hạn sử dụng.",
+                        "D. Doanh nghiệp đã thanh toán hết nợ gốc trái phiếu doanh nghiệp trước hạn."
+                ],
+                "answer": 1,
+                "explanation": "Biên lợi nhuận gộp là tấm gương phản chiếu lợi thế cạnh tranh con hào kinh tế (economic moat). Biên gộp giảm liên tục chứng minh doanh nghiệp không thể chuyển chi phí đầu vào gia tăng sang cho khách hàng, phản ánh vị thế thương lượng suy yếu trên thị trường."
+        },
+        {
+                "id": 19,
+                "group": "Nhóm 2: Phân tích các chỉ số tài chính",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Chỉ số EPS pha loãng (Diluted EPS) được tính toán nhằm mục đích sư phạm và phân tích nào?",
+                "options": [
+                        "A. Đo lường EPS trong kịch bản toàn bộ các chứng khoán có thể chuyển đổi (trái phiếu chuyển đổi, chứng quyền, cổ phiếu ESOP) được chuyển hóa thành cổ phiếu phổ thông.",
+                        "B. Xác định số tiền cổ tức thực tế mà mỗi cổ đông nhận được vào tài khoản ngân hàng.",
+                        "C. Loại trừ hoàn toàn tác động của lạm phát và tỷ giá hối đoái lên kết quả kinh doanh.",
+                        "D. Dự báo giá trị thanh lý tài sản của doanh nghiệp khi giải thể."
+                ],
+                "answer": 0,
+                "explanation": "EPS cơ bản (Basic EPS) chỉ tính trên số cổ phiếu đang lưu hành. Nếu công ty phát hành nhiều quyền chọn cổ phiếu ưu đãi (ESOP) hoặc trái phiếu chuyển đổi, trong tương lai số cổ phiếu sẽ tăng vọt, làm quyền lợi của cổ đông hiện hữu bị pha loãng. Diluted EPS đưa ra góc nhìn thận trọng nhất."
+        },
+        {
+                "id": 20,
+                "group": "Nhóm 2: Phân tích các chỉ số tài chính",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "So sánh hai doanh nghiệp cùng ngành: Công ty X có P/E = 7 lần, ROE = 9%; Công ty Y có P/E = 16 lần, ROE = 26%. Nhận định học thuật nào chuẩn xác nhất?",
+                "options": [
+                        "A. Công ty X chắc chắn là món đầu tư tốt hơn vì chỉ số P/E rẻ hơn gấp đôi Công ty Y.",
+                        "B. P/E cao của Y phản ánh kỳ vọng của thị trường vào chất lượng tài sản, hiệu quả sinh lời vượt trội (ROE 26%) và tiềm năng tăng trưởng, cần phân tích sâu thay vì kết luận X rẻ hơn.",
+                        "C. Cả hai doanh nghiệp đều đang bị định giá quá cao so với giá trị nội tại.",
+                        "D. Công ty Y chắc chắn sắp sụp đổ vì chỉ số P/E đã vượt ngưỡng an toàn."
+                ],
+                "answer": 1,
+                "explanation": "P/E không thể đứng độc lập mà phải đặt cạnh tốc độ tăng trưởng và chất lượng sinh lời ROE. Cổ phiếu có P/E thấp nhưng ROE kém cỏi thường là bẫy giá trị (value trap) của các doanh nghiệp đang suy thoái; ngược lại công ty có ROE cao bền vững xứng đáng được định giá ở bội số cao hơn."
+        },
+        {
+                "id": 21,
+                "group": "Nhóm 3: Dòng tiền, đòn bẩy và rủi ro",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Doanh nghiệp H có Lợi nhuận sau thuế năm 2025 là 220 tỷ đồng, Chi phí khấu hao là 50 tỷ đồng, Khoản phải thu tăng 80 tỷ đồng, Hàng tồn kho tăng 40 tỷ đồng, Phải trả người bán tăng 30 tỷ đồng. Dòng tiền thuần từ HĐKD (CFO) ước tính theo phương pháp gián tiếp là:",
+                "options": [
+                        "A. 270 tỷ đồng",
+                        "B. 180 tỷ đồng",
+                        "C. 220 tỷ đồng",
+                        "D. 150 tỷ đồng"
+                ],
+                "answer": 1,
+                "explanation": "Theo phương pháp gián tiếp: CFO = Lợi nhuận sau thuế + Khấu hao - Tăng phải thu - Tăng tồn kho + Tăng phải trả người bán = 220 + 50 - 80 - 40 + 30 = 180 tỷ đồng."
+        },
+        {
+                "id": 22,
+                "group": "Nhóm 3: Dòng tiền, đòn bẩy và rủi ro",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Dòng tiền tự do cho doanh nghiệp (FCFF - Free Cash Flow to Firm) đại diện cho lượng tiền mặt nào?",
+                "options": [
+                        "A. Số dư tiền gửi không kỳ hạn tại ngày khóa sổ kế toán của doanh nghiệp.",
+                        "B. Dòng tiền thuần từ hoạt động kinh doanh còn lại sau khi đã tài trợ cho các khoản chi tiêu vốn (Capex) cần thiết để duy trì và mở rộng sản xuất kinh doanh.",
+                        "C. Toàn bộ lợi nhuận giữ lại tích lũy qua các năm trên Bảng cân đối kế toán.",
+                        "D. Khoản tiền vay ngân hàng mới được giải ngân trong kỳ kế toán."
+                ],
+                "answer": 1,
+                "explanation": "FCFF = CFO - Capex (hoặc NOPAT + Khấu hao - Capex - Thay đổi vốn lưu động). Đây là dòng tiền thực sự dôi dư có thể tùy ý chi trả cho tất cả các nhà cung cấp vốn (chủ nợ và cổ đông) mà không làm suy giảm hoạt động bình thường của doanh nghiệp."
+        },
+        {
+                "id": 23,
+                "group": "Nhóm 3: Dòng tiền, đòn bẩy và rủi ro",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Hiện tượng nào sau đây là minh chứng điển hình cho tình trạng 'Lợi nhuận chất lượng thấp' (Earnings Quality)?",
+                "options": [
+                        "A. Lợi nhuận sau thuế tăng trưởng 12%/năm song hành cùng dòng tiền CFO tăng trưởng tương ứng.",
+                        "B. Lợi nhuận kế toán sau thuế liên tục tăng trưởng cao qua các năm nhưng dòng tiền CFO lại âm kéo dài, tỷ trọng Khoản phải thu và Tồn kho trên Tổng tài sản phình to bất thường.",
+                        "C. Doanh nghiệp thanh toán toàn bộ các khoản nợ vay ngân hàng trước thời hạn cam kết.",
+                        "D. Biên lợi nhuận gộp ổn định trong bối cảnh giá cả nguyên vật liệu thế giới biến động nhẹ."
+                ],
+                "answer": 1,
+                "explanation": "Lợi nhuận kế toán dựa trên nguyên tắc dồn tích nên có thể bị can thiệp qua các thủ thuật ghi nhận doanh thu sớm hoặc chậm trích lập dự phòng. Nếu lợi nhuận tăng nhưng không thu được tiền (CFO âm liên tục), doanh nghiệp đang tạo ra 'lợi nhuận trên giấy', tiềm ẩn nguy cơ vỡ nợ thanh khoản."
+        },
+        {
+                "id": 24,
+                "group": "Nhóm 3: Dòng tiền, đòn bẩy và rủi ro",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Công ty T có Tài sản ngắn hạn 700 tỷ đồng (trong đó Hàng tồn kho là 300 tỷ đồng, Chi phí trả trước ngắn hạn là 20 tỷ đồng), Nợ ngắn hạn là 320 tỷ đồng. Tỷ số thanh toán nhanh (Quick Ratio) của công ty là:",
+                "options": [
+                        "A. 2,19 lần",
+                        "B. 1,19 lần",
+                        "C. 0,94 lần",
+                        "D. 1,50 lần"
+                ],
+                "answer": 1,
+                "explanation": "Tỷ số thanh toán nhanh = (Tài sản ngắn hạn - Hàng tồn kho - Chi phí trả trước) / Nợ ngắn hạn = (700 - 300 - 20) / 320 = 380 / 320 = 1,1875 lần (xấp xỉ 1,19 lần)."
+        },
+        {
+                "id": 25,
+                "group": "Nhóm 3: Dòng tiền, đòn bẩy và rủi ro",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Hệ số khả năng trả lãi vay (Interest Coverage Ratio = EBIT / Chi phí lãi vay) giảm xuống dưới mức 1,5 lần cảnh báo rủi ro gì?",
+                "options": [
+                        "A. Doanh nghiệp đang dư thừa tiền mặt và có năng lực tài chính hoàn toàn an toàn.",
+                        "B. Doanh nghiệp gặp nguy cơ căng thẳng tài chính nghiêm trọng, lợi nhuận hoạt động tạo ra chỉ vừa đủ hoặc không đủ trang trải nghĩa vụ trả lãi nợ vay.",
+                        "C. Doanh nghiệp được các tổ chức xếp hạng tín nhiệm nâng hạng tín dụng lên mức đầu tư cao.",
+                        "D. Ban điều hành nên tăng tỷ lệ chia cổ tức tiền mặt cho cổ đông ngay trong quý."
+                ],
+                "answer": 1,
+                "explanation": "EBIT là lợi nhuận trước lãi vay và thuế. Nếu EBIT / Lãi vay < 1,5 lần, chỉ cần một biến cố kinh doanh tiêu cực nhẹ hoặc lãi suất cho vay tăng lên, doanh nghiệp sẽ không tạo đủ lợi nhuận để trả lãi, đối mặt nguy cơ bị ngân hàng chuyển nhóm nợ xấu."
+        },
+        {
+                "id": 26,
+                "group": "Nhóm 3: Dòng tiền, đòn bẩy và rủi ro",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Mô hình định lượng Altman Z-Score được sử dụng phổ biến trong phân tích tài chính nhằm mục đích gì?",
+                "options": [
+                        "A. Dự báo chính xác giá cổ phiếu cao nhất và thấp nhất trong năm tài chính tiếp theo.",
+                        "B. Dự báo xác suất rủi ro kiệt quệ tài chính hoặc nguy cơ phá sản của doanh nghiệp trong vòng 1 đến 2 năm tới dựa trên 5 tỷ số tài chính trọng yếu.",
+                        "C. Đo lường mức độ trung thành của khách hàng đối với thương hiệu doanh nghiệp.",
+                        "D. Tính toán khối lượng phát thải khí nhà kính của các phân xưởng sản xuất."
+                ],
+                "answer": 1,
+                "explanation": "Edward Altman phát triển mô hình Z-score dựa trên phân tích hồi quy đa biến (vốn lưu động, lợi nhuận giữ lại, EBIT, giá trị vốn hóa so với nợ, vòng quay tài sản). Nếu Z < 1,81 (với doanh nghiệp sản xuất), công ty nằm trong 'Vùng nguy hiểm' (Distress Zone) có nguy cơ phá sản cao."
+        },
+        {
+                "id": 27,
+                "group": "Nhóm 3: Dòng tiền, đòn bẩy và rủi ro",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Chỉ số Beneish M-Score là công cụ tài chính được thiết kế chuyên biệt để phát hiện dấu hiệu bất thường nào?",
+                "options": [
+                        "A. Năng lực nghiên cứu phát triển và đăng ký sáng chế bản quyền của công ty.",
+                        "B. Khả năng doanh nghiệp thao túng, 'làm đẹp' hoặc gian lận số liệu báo cáo tài chính thông qua 8 biến số kế toán.",
+                        "C. Tốc độ chuyển đổi số và ứng dụng điện toán đám mây trong quản lý nội bộ.",
+                        "D. Tỷ lệ nhân viên nghỉ việc bình quân hàng năm tại các chi nhánh kinh doanh."
+                ],
+                "answer": 1,
+                "explanation": "Giáo sư Messod Beneish xây dựng M-Score dựa trên các chỉ số như DSRI (ngày thu tiền), GMI (biên gộp), AQI (chất lượng tài sản), SGI (tăng trưởng doanh thu), DEPI (khấu hao), TATA (tổng dồn tích). Nếu M-Score > -1,78, doanh nghiệp có xác suất cao đang thao túng báo cáo tài chính."
+        },
+        {
+                "id": 28,
+                "group": "Nhóm 3: Dòng tiền, đòn bẩy và rủi ro",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Hành vi sử dụng vốn vay ngắn hạn ngân hàng để tài trợ cho dự án xây dựng cảng biển có thời gian thu hồi vốn 8 năm vi phạm nguyên tắc tài chính cốt lõi nào?",
+                "options": [
+                        "A. Nguyên tắc cân đối kỳ hạn giữa tài sản và nguồn vốn (Mismatching Maturities), tạo ra rủi ro thanh khoản nghiêm trọng khi khoản nợ ngắn hạn đáo hạn trước khi dự án sinh tiền.",
+                        "B. Nguyên tắc bảo toàn vốn điều lệ danh nghĩa đăng ký kinh doanh.",
+                        "C. Nguyên tắc hạch toán chi phí phù hợp với doanh thu theo luật thuế.",
+                        "D. Chuẩn mực báo cáo trách nhiệm xã hội và môi trường của doanh nghiệp."
+                ],
+                "answer": 0,
+                "explanation": "Tài sản dài hạn phải được tài trợ bằng nguồn vốn dài hạn (vốn chủ hoặc nợ dài hạn). Việc dùng nợ ngắn hạn tài trợ tài sản dài hạn dẫn tới tình trạng vốn lưu động ròng âm (Working Capital < 0). Khi ngân hàng siết van tín dụng, công ty không có tiền trả nợ ngay lập tức và rơi vào khủng hoảng thanh khoản."
+        },
+        {
+                "id": 29,
+                "group": "Nhóm 3: Dòng tiền, đòn bẩy và rủi ro",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Doanh nghiệp Q có Tổng nợ phải trả là 1.800 tỷ đồng và Vốn chủ sở hữu là 600 tỷ đồng. Tỷ số Nợ trên Vốn chủ sở hữu (Debt-to-Equity - D/E) của Q là:",
+                "options": [
+                        "A. 0,33 lần",
+                        "B. 2,0 lần",
+                        "C. 3,0 lần",
+                        "D. 4,0 lần"
+                ],
+                "answer": 2,
+                "explanation": "Tỷ số D/E = Tổng nợ phải trả / Vốn chủ sở hữu = 1.800 / 600 = 3,0 lần. Điều này có nghĩa là mỗi 1 đồng vốn chủ sở hữu đang phải gánh tới 3 đồng nợ phải trả."
+        },
+        {
+                "id": 30,
+                "group": "Nhóm 3: Dòng tiền, đòn bẩy và rủi ro",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Khi nền kinh tế bước vào chu kỳ suy thoái và mặt bằng lãi suất tăng vọt, nhóm doanh nghiệp nào sau đây đối mặt với rủi ro kiệt quệ tài chính cao nhất?",
+                "options": [
+                        "A. Doanh nghiệp dịch vụ công nghệ có lượng tiền mặt lớn và hầu như không sử dụng nợ vay.",
+                        "B. Doanh nghiệp sản xuất hàng tiêu dùng thiết yếu có dòng tiền CFO ổn định và tỷ số đòn bẩy thấp.",
+                        "C. Doanh nghiệp bất động sản / xây dựng có tỷ lệ đòn bẩy nợ D/E cao và dòng tiền hoạt động phụ thuộc hoàn toàn vào thanh khoản thị trường đóng băng.",
+                        "D. Doanh nghiệp phân phối dược phẩm có thị trường tiêu thụ nội địa khép kín."
+                ],
+                "answer": 2,
+                "explanation": "Đòn bẩy tài chính là 'con dao hai lưỡi'. Khi lãi suất tăng và thị trường đóng băng, doanh nghiệp bất động sản chịu đòn kép: chi phí lãi vay tăng đột biến trong khi không bán được hàng để tạo dòng tiền trả nợ gốc, dẫn tới nguy cơ mất khả năng thanh toán đầu tiên."
+        },
+        {
+                "id": 31,
+                "group": "Nhóm 4: Định giá cổ phiếu",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Cổ phiếu E dự kiến chi trả cổ tức tiền mặt cố định 3.600 đ/cổ phiếu mỗi năm vĩnh viễn (mô hình không tăng trưởng), tỷ suất sinh lời đòi hỏi của nhà đầu tư là 12%/năm. Giá trị nội tại ước tính của cổ phiếu E là:",
+                "options": [
+                        "A. 25.000 đồng",
+                        "B. 30.000 đồng",
+                        "C. 36.000 đồng",
+                        "D. 43.200 đồng"
+                ],
+                "answer": 1,
+                "explanation": "Theo mô hình chiết khấu cổ tức vĩnh cửu không tăng trưởng: Giá trị cổ phiếu P0 = D / r = 3.600 / 0,12 = 30.000 đồng/cổ phiếu."
+        },
+        {
+                "id": 32,
+                "group": "Nhóm 4: Định giá cổ phiếu",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Theo mô hình tăng trưởng Gordon ($P_0 = D_1 / (r - g)$), cổ tức dự kiến nhận được năm tới $D_1 = 2.400$ đồng, tỷ suất chiết khấu đòi hỏi $r = 13\\%$, tốc độ tăng trưởng dài hạn bền vững $g = 5\\%$. Giá trị lý thuyết của cổ phiếu là:",
+                "options": [
+                        "A. 20.000 đồng",
+                        "B. 25.000 đồng",
+                        "C. 30.000 đồng",
+                        "D. 40.000 đồng"
+                ],
+                "answer": 2,
+                "explanation": "Áp dụng công thức Gordon: P0 = D1 / (r - g) = 2.400 / (0,13 - 0,05) = 2.400 / 0,08 = 30.000 đồng/cổ phiếu."
+        },
+        {
+                "id": 33,
+                "group": "Nhóm 4: Định giá cổ phiếu",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Trong mô hình chiết khấu dòng tiền tự do cho doanh nghiệp (DCF/FCFF), tỷ suất chiết khấu phù hợp nhất để chiết khấu dòng tiền về hiện tại là:",
+                "options": [
+                        "A. Lãi suất tiền gửi tiết kiệm có kỳ hạn 12 tháng tại các ngân hàng thương mại quốc doanh.",
+                        "B. Chi phí sử dụng vốn bình quân (WACC - Weighted Average Cost of Capital).",
+                        "C. Chi phí nợ vay trước thuế của doanh nghiệp ghi trên hợp đồng tín dụng.",
+                        "D. Tỷ lệ lạm phát chỉ số giá tiêu dùng CPI bình quân của nền kinh tế."
+                ],
+                "answer": 1,
+                "explanation": "Vì dòng tiền FCFF là dòng tiền thuộc về cả hai bên cung cấp vốn (Chủ nợ và Cổ đông), tỷ suất chiết khấu tương ứng bắt buộc phải là chi phí cơ hội bình quân của toàn bộ cấu trúc vốn đó, tức là Chi phí vốn bình quân WACC."
+        },
+        {
+                "id": 34,
+                "group": "Nhóm 4: Định giá cổ phiếu",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Doanh nghiệp có cấu trúc vốn gồm 60% Vốn chủ sở hữu với chi phí vốn $r_e = 15\\%$, và 40% Nợ vay chịu lãi với lãi suất nợ vay trước thuế 9%, thuế suất thuế TNDN là 20%. Chi phí vốn bình quân (WACC) của doanh nghiệp là:",
+                "options": [
+                        "A. 11,88%",
+                        "B. 12,60%",
+                        "C. 10,96%",
+                        "D. 9,45%"
+                ],
+                "answer": 0,
+                "explanation": "Chi phí nợ sau thuế = 9% × (1 - 0,20) = 7,2%. WACC = (0,60 × 15%) + (0,40 × 7,2%) = 9,0% + 2,88% = 11,88%."
+        },
+        {
+                "id": 35,
+                "group": "Nhóm 4: Định giá cổ phiếu",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Khi thiết lập tỷ lệ tăng trưởng dài hạn vĩnh viễn ($g$) trong mô hình DCF hai giai đoạn, nguyên tắc giới hạn kinh tế bắt buộc nào phải tuân thủ?",
+                "options": [
+                        "A. Có thể tự do đặt ở mức 15–20% dựa trên kế hoạch kinh doanh tham vọng của ban lãnh đạo.",
+                        "B. Không bao giờ được vượt quá tốc độ tăng trưởng kinh tế dài hạn (tăng trưởng GDP danh nghĩa) của quốc gia nơi doanh nghiệp hoạt động.",
+                        "C. Phải luôn bằng đúng với tỷ lệ chia cổ tức bằng tiền mặt của năm tài chính gần nhất.",
+                        "D. Bằng đúng với lãi suất cho vay cơ bản của Ngân hàng Nhà nước."
+                ],
+                "answer": 1,
+                "explanation": "Nếu giả định g vượt quá tốc độ tăng trưởng GDP của nền kinh tế về mặt lý thuyết trong dài hạn vô hạn, doanh nghiệp đó cuối cùng sẽ lớn hơn cả toàn bộ nền kinh tế quốc gia – một điều hoàn toàn phi lý về mặt kinh tế học. Thông thường g được giới hạn trong khoảng 2%–4%."
+        },
+        {
+                "id": 36,
+                "group": "Nhóm 4: Định giá cổ phiếu",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Trong mô hình định giá DCF, 'Giá trị tận cùng' (Terminal Value - TV) thường chiếm từ 65% đến 80% tổng giá trị nội tại ước tính của công ty. Điều này cảnh báo rủi ro phương pháp luận nào?",
+                "options": [
+                        "A. Mô hình DCF hoàn toàn vô giá trị và không nên được đưa vào giảng dạy tài chính.",
+                        "B. Kết quả định giá phụ thuộc cực kỳ nhạy cảm vào hai giả định dài hạn (WACC và g); chỉ cần một biến động nhỏ trong WACC hoặc g sẽ làm kết quả định giá sai lệch hàng chục phần trăm.",
+                        "C. Doanh nghiệp chỉ có giá trị thực sự sau khi đã kết thúc 10 năm hoạt động dự phóng.",
+                        "D. Dòng tiền hoạt động hàng năm của công ty không cần phải dự báo chi tiết."
+                ],
+                "answer": 1,
+                "explanation": "Vì phần lớn giá trị nằm ở Giá trị tận cùng TV = FCFF(n+1) / (WACC - g), sự nhạy cảm của mẫu số (WACC - g) khiến kết quả định giá dễ bị bóp méo bởi sự chủ quan của người định giá. Do đó, việc xây dựng Bảng phân tích độ nhạy (Sensitivity Analysis) là yêu cầu kỹ thuật bắt buộc."
+        },
+        {
+                "id": 37,
+                "group": "Nhóm 4: Định giá cổ phiếu",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Phương pháp định giá so sánh bội số P/E trung bình ngành có hạn chế cốt lõi nào mà nhà phân tích cần lưu ý?",
+                "options": [
+                        "A. Không thể áp dụng đối với các doanh nghiệp niêm yết trên sàn chứng khoán.",
+                        "B. Dễ bỏ qua sự khác biệt trọng yếu về cấu trúc đòn bẩy nợ, chất lượng tài sản, rủi ro quản trị và triển vọng tăng trưởng giữa các doanh nghiệp trong nhóm so sánh.",
+                        "C. Đòi hỏi quá nhiều chi phí và công cụ tính toán phức tạp hơn mô hình DCF.",
+                        "D. Luôn luôn đưa ra kết quả định giá thấp hơn thị giá thực tế 50%."
+                ],
+                "answer": 1,
+                "explanation": "Phương pháp định giá so sánh bội số giả định các doanh nghiệp trong ngành có các đặc điểm tương đồng. Tuy nhiên, hai doanh nghiệp cùng ngành có thể có mức độ nợ vay rất khác nhau, chất lượng lợi nhuận khác nhau, và rủi ro khác nhau. Việc áp dụng máy móc P/E trung bình ngành sẽ dẫn đến định giá sai lệch."
+        },
+        {
+                "id": 38,
+                "group": "Nhóm 4: Định giá cổ phiếu",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Khi định giá một Ngân hàng thương mại cổ phần, phương pháp định giá nào sau đây thường được giới phân tích chuyên nghiệp ưu tiên sử dụng hơn phương pháp FCFF?",
+                "options": [
+                        "A. Phương pháp chiết khấu dòng tiền thuần FCFF vì ngân hàng có nhiều vốn lưu động.",
+                        "B. Phương pháp so sánh P/B (Price-to-Book) và mô hình Thu nhập Thặng dư (Residual Income Model / Excess Return) hoặc FCFE, do đặc thù tiền gửi là nguyên liệu kinh doanh trực tiếp chứ không phải nợ vay thông thường.",
+                        "C. Phương pháp định giá tài sản thanh lý theo giá trị sắt vụn máy móc văn phòng.",
+                        "D. Phương pháp bội số Doanh thu thuần P/S (Price-to-Sales)."
+                ],
+                "answer": 1,
+                "explanation": "Đối với ngân hàng, nợ phải trả (tiền gửi của khách hàng) là yếu tố hoạt động kinh doanh cốt lõi chứ không phải quyết định tài trợ như công ty phi tài chính. Rất khó để tách biệt vốn lưu động và dòng tiền nợ vay để tính FCFF. Do đó, P/B và mô hình Thu nhập Thặng dư dựa trên Vốn chủ sở hữu là chuẩn mực định giá ngành ngân hàng."
+        },
+        {
+                "id": 39,
+                "group": "Nhóm 4: Định giá cổ phiếu",
+                "bloom": "Vận dụng",
+                "type": "mcq",
+                "text": "Báo cáo phân tích dự báo EPS năm 2026 của cổ phiếu V đạt 4.500 đồng, và xác định khoảng P/E mục tiêu hợp lý từ 11 đến 13 lần. Khoảng giá trị định giá của cổ phiếu V là:",
+                "options": [
+                        "A. 35.000 – 45.000 đồng",
+                        "B. 49.500 – 58.500 đồng",
+                        "C. 40.000 – 50.000 đồng",
+                        "D. 55.000 – 65.000 đồng"
+                ],
+                "answer": 1,
+                "explanation": "Khoảng giá trị định giá: Giá sàn = 4.500 × 11 = 49.500 đồng; Giá trần = 4.500 × 13 = 58.500 đồng. Khoảng hợp lý là 49.500 – 58.500 đồng/cổ phiếu."
+        },
+        {
+                "id": 40,
+                "group": "Nhóm 4: Định giá cổ phiếu",
+                "bloom": "Hiểu",
+                "type": "mcq",
+                "text": "Khái niệm 'Biên an toàn' (Margin of Safety) của Benjamin Graham có ý nghĩa phương pháp luận như thế nào trong định giá và đầu tư?",
+                "options": [
+                        "A. Là tỷ lệ chiết khấu giữa thị giá hiện tại so với giá trị nội tại ước tính để phòng ngừa các sai số trong dự phóng và những biến cố khó lường của thị trường.",
+                        "B. Là hạn mức vay ký quỹ tối đa mà công ty chứng khoán được phép cấp cho tài khoản nhà đầu tư.",
+                        "C. Là lệnh tự động cắt lỗ cố định ở mức 7% trên hệ thống giao dịch của sàn chứng khoán.",
+                        "D. Là tỷ lệ tiền gửi dự trữ bắt buộc của ngân hàng thương mại tại Ngân hàng Trung ương."
+                ],
+                "answer": 0,
+                "explanation": "Biên an toàn là nguyên lý cốt lõi của đầu tư giá trị: vì mọi mô hình định giá chỉ là ước tính tương đối và tương lai chứa đựng nhiều ẩn số khó lường, nhà đầu tư chỉ nên mua khi thị giá thấp hơn đáng kể so với giá trị nội tại (ví dụ: mua ở mức chiết khấu 25–30%) để bảo vệ vốn."
+        },
+        {
+                "id": 41,
+                "group": "Nhóm 5: Phân tích tình huống và phản biện",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Cổ phiếu ngành thép T có chỉ số P/E lịch sử chỉ 4,2 lần, thấp hơn nhiều so với P/E thị trường (14 lần). Tuy nhiên, đây là thời điểm giá thép thế giới đang ở đỉnh chu kỳ 10 năm và biên lợi nhuận bắt đầu suy giảm. Hiện tượng này được gọi là gì?",
+                "options": [
+                        "A. Cơ hội mua tích sản siêu an toàn vì cổ phiếu đang quá rẻ.",
+                        "B. Bẫy giá trị của ngành có tính chu kỳ (Cyclical Value Trap), khi lợi nhuận đỉnh chu kỳ (peak earnings) làm P/E quá khứ thấp giả tạo trước khi lợi nhuận lao dốc.",
+                        "C. Lỗi kỹ thuật hiển thị số liệu của Sở Giao dịch Chứng khoán.",
+                        "D. Tín hiệu doanh nghiệp sắp phát hành cổ phiếu thưởng tỷ lệ 1:1."
+                ],
+                "answer": 1,
+                "explanation": "Với các ngành có tính chu kỳ cao (thép, xi măng, hóa chất, vận tải biển), khi lợi nhuận đạt đỉnh chu kỳ, EPS quá khứ rất cao làm chỉ số P/E trông có vẻ rất 'rẻ'. Tuy nhiên, khi giá hàng hóa đảo chiều, EPS sẽ sụt giảm mạnh, khiến P/E tương lai tăng vọt. Mua cổ phiếu chu kỳ ở P/E thấp nhất thường là lúc nguy hiểm nhất."
+        },
+        {
+                "id": 42,
+                "group": "Nhóm 5: Phân tích tình huống và phản biện",
+                "bloom": "Đánh giá",
+                "type": "mcq",
+                "text": "Nhóm sinh viên A dùng P/E định giá cổ phiếu M là 52.000 đ, trong khi Nhóm B dùng DCF định giá 36.000 đ. Thị giá trên sàn là 41.000 đ. Can thiệp sư phạm chuẩn xác nhất của giảng viên là gì?",
+                "options": [
+                        "A. Chọn ngay kết quả 52.000 đ của Nhóm A vì đem lại khuyến nghị mua hấp dẫn hơn cho sinh viên.",
+                        "B. Lấy trung bình cộng cơ học (52.000 + 36.000) / 2 = 44.000 đ để giải quyết nhanh tranh luận.",
+                        "C. Yêu cầu hai nhóm đối chiếu chéo các giả định đầu vào: Nhóm A kiểm tra P/E ngành có bị nhiễu bởi cổ phiếu bất thường; Nhóm B rà soát lại dự phóng tăng trưởng g và WACC, sau đó thực hiện phân tích độ nhạy.",
+                        "D. Hủy bỏ kết quả của cả hai nhóm vì không khớp chính xác với thị giá sàn 41.000 đồng."
+                ],
+                "answer": 2,
+                "explanation": "Định giá không phải là tìm kiếm một con số tuyệt đối mà là kiểm chứng sự hợp lý của các giả định kinh tế. Giảng viên cần định hướng sinh viên kiểm tra độ tin cậy của dữ liệu đầu vào và các điều kiện biên của mô hình để rèn luyện tư duy phản biện."
+        },
+        {
+                "id": 43,
+                "group": "Nhóm 5: Phân tích tình huống và phản biện",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Doanh nghiệp sản xuất đột ngột thay đổi ước tính thời gian sử dụng hữu ích của máy móc từ 5 năm lên 10 năm. Hành động này tạo ra tác động kế toán nào trên BCTC?",
+                "options": [
+                        "A. Làm giảm chi phí khấu hao hàng năm, qua đó thổi phồng lợi nhuận kế toán trước và sau thuế, nhưng hoàn toàn không mang lại thêm bất kỳ dòng tiền thực nào vào công ty.",
+                        "B. Giúp dòng tiền thuần từ hoạt động kinh doanh (CFO) tăng trưởng đột biến ngay lập tức.",
+                        "C. Làm giảm giá trị ghi sổ của tài sản cố định trên Bảng cân đối kế toán.",
+                        "D. Khiến doanh nghiệp được miễn giảm hoàn toàn thuế thu nhập doanh nghiệp trong kỳ."
+                ],
+                "answer": 0,
+                "explanation": "Tăng thời gian khấu hao làm chi phí khấu hao mỗi năm giảm đi một nửa, kéo lợi nhuận kế toán tăng lên. Tuy nhiên, việc thay đổi chính sách kế toán này thuần túy là 'bút toán trên giấy' (paper gain) chứ không làm phát sinh thêm dòng tiền thực tế."
+        },
+        {
+                "id": 44,
+                "group": "Nhóm 5: Phân tích tình huống và phản biện",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Một công ty bất động sản ghi nhận doanh thu và lợi nhuận tài chính đột biến hàng nghìn tỷ đồng thông qua việc bán dự án cho một công ty liên kết mới thành lập (sở hữu 49%). Rủi ro trọng yếu nào cần được lưu ý?",
+                "options": [
+                        "A. Doanh nghiệp có năng lực quản trị liên kết xuất sắc nhất thị trường.",
+                        "B. Giao dịch với bên liên quan có thể nhằm mục đích hiện thực hóa doanh thu ảo trên BCTC công ty mẹ mà dòng tiền thực tế chưa hề rời khỏi hệ sinh thái nội bộ doanh nghiệp.",
+                        "C. Rủi ro biến động tỷ giá hối đoái quốc tế khi giao dịch bằng đồng ngoại tệ.",
+                        "D. Lợi nhuận chắc chắn sẽ được phân phối ngay bằng tiền mặt 100% cho cổ đông nhỏ lẻ."
+                ],
+                "answer": 1,
+                "explanation": "Giao dịch bán tài sản cho bên liên quan (liên doanh, liên kết) thường là chiêu thức làm đẹp sổ sách để ghi nhận lợi nhuận một lần, trong khi bản chất dự án vẫn nằm trong quyền kiểm soát thực tế của nhóm cổ đông chi phối và chưa có dòng tiền thanh toán thực từ người mua độc lập bên ngoài."
+        },
+        {
+                "id": 45,
+                "group": "Nhóm 5: Phân tích tình huống và phản biện",
+                "bloom": "Phân tích",
+                "type": "mcq",
+                "text": "Tại một công ty bán lẻ điện máy, chỉ số vòng quay hàng tồn kho giảm mạnh từ 6,5 vòng/năm xuống còn 2,2 vòng/năm trong khi biên lợi nhuận gộp không đổi. Tín hiệu này cảnh báo điều gì?",
+                "options": [
+                        "A. Tốc độ tiêu thụ hàng hóa tăng nhanh và công ty sắp hết hàng trong kho.",
+                        "B. Hàng tồn kho bị ứ đọng nghiêm trọng, nguy cơ sản phẩm công nghệ bị lỗi thời, giảm giá trị và doanh nghiệp đối mặt với rủi ro phải trích lập dự phòng giảm giá hàng tồn kho lớn.",
+                        "C. Doanh nghiệp đã quản lý chi phí kho bãi thành công vượt bậc.",
+                        "D. Năng lực đàm phán mua hàng của doanh nghiệp đối với các nhà cung cấp tăng lên."
+                ],
+                "answer": 1,
+                "explanation": "Vòng quay tồn kho giảm mạnh nghĩa là số ngày lưu kho kéo dài gấp 3 lần (từ gần 2 tháng lên tới hơn 5 tháng). Đối với đồ công nghệ điện máy vốn mất giá rất nhanh theo thời gian, hàng tồn kho ứ đọng sẽ bào mòn lợi nhuận tương lai khi phải đại hạ giá hoặc trích lập dự phòng giảm giá."
+        },
+        {
+                "id": 46,
+                "group": "Nhóm 5: Phân tích tình huống và phản biện",
+                "bloom": "Đánh giá",
+                "type": "essay",
+                "text": "Phân tích rủi ro cấu trúc tài chính khi ROE tăng đột biến: Phân tích tình huống một doanh nghiệp có ROE tăng vọt từ 12% lên 28% trong 2 năm, nhưng dòng tiền thuần từ HĐKD (CFO) liên tục âm và hệ số Nợ/Vốn chủ sở hữu (D/E) tăng từ 0,8 lên 3,2 lần. Hãy phân tích các rủi ro tài chính tiềm ẩn và nêu ít nhất hai bước kiểm chứng độc lập mà nhà phân tích cần thực hiện trước khi ra quyết định định giá.",
+                "rubric": [
+                        {
+                                "level": "Mức 4 (Xuất sắc: 9-10đ)",
+                                "desc": "Vận dụng chuẩn xác mô hình DuPont chỉ ra ROE tăng do đòn bẩy nợ; phân tích sâu mâu thuẫn giữa lợi nhuận dồn tích và CFO âm (nguy cơ vỡ nợ thanh khoản); đề xuất 2 bước kiểm chứng cụ thể (kiểm tra tuổi nợ phải thu/tồn kho và tính hệ số ICR)."
+                        },
+                        {
+                                "level": "Mức 3 (Khá: 7-8đ)",
+                                "desc": "Nhận diện được nguyên nhân do gia tăng nợ vay; nêu được rủi ro thanh khoản; có nêu 2 bước kiểm chứng hợp lý nhưng giải thích chưa thật chi tiết."
+                        },
+                        {
+                                "level": "Mức 2 (Đạt: 5-6đ)",
+                                "desc": "Nêu được rủi ro vay nợ nhiều nhưng chưa gắn kết chặt chẽ với mô hình DuPont và dòng tiền CFO âm; giải pháp kiểm chứng còn chung chung."
+                        },
+                        {
+                                "level": "Mức 1 (Chưa đạt: 0-4đ)",
+                                "desc": "Nhận định sai lầm rằng ROE tăng là tín hiệu kinh doanh hoàn hảo; không nhận diện được rủi ro nợ vay và mất thanh khoản."
+                        }
+                ],
+                "explanation": "Hướng dẫn chấm: Sinh viên cần phân rã ROE theo DuPont để thấy rõ ROE tăng không đến từ năng lực hoạt động hay biên lợi nhuận mà do tăng tỷ lệ đòn bẩy nợ. CFO âm liên tục kết hợp nợ vay tăng vọt báo hiệu doanh nghiệp đang vay nợ mới để duy trì hoạt động hoặc thanh toán nợ cũ. Cần kiểm tra kỹ khả năng trả lãi vay EBIT/Lãi vay và thời gian thu hồi nợ."
+        },
+        {
+                "id": 47,
+                "group": "Nhóm 5: Phân tích tình huống và phản biện",
+                "bloom": "Đánh giá",
+                "type": "essay",
+                "text": "Tư duy phản biện về bẫy định giá P/E thấp (Value Trap): Một nhà đầu tư nhận định: 'Cổ phiếu X có chỉ số P/E hiện tại chỉ bằng 5,5 lần, thấp hơn nhiều so với P/E trung bình ngành là 14 lần. Do đó cổ phiếu này chắc chắn đang bị định giá rẻ và là cơ hội đầu tư an toàn tuyệt đối'. Dưới góc độ học thuật tài chính, hãy phản biện nhận định trên và chỉ ra ít nhất ba nguyên nhân khiến một cổ phiếu có P/E rất thấp nhưng không hề 'rẻ'.",
+                "rubric": [
+                        {
+                                "level": "Mức 4 (Xuất sắc: 9-10đ)",
+                                "desc": "Phản biện sắc bén việc dùng từ tuyệt đối từ một chỉ số đơn lẻ; phân tích rõ 3 nguyên nhân: (1) Lợi nhuận đỉnh chu kỳ; (2) Thu nhập đột biến một lần; (3) Doanh nghiệp đối mặt nguy cơ suy giảm triển vọng vĩnh viễn hoặc rủi ro quản trị; đề xuất chuẩn hóa lợi nhuận."
+                        },
+                        {
+                                "level": "Mức 3 (Khá: 7-8đ)",
+                                "desc": "Chỉ ra được hạn chế của P/E; nêu được 2-3 nguyên nhân hợp lý; lập luận logic."
+                        },
+                        {
+                                "level": "Mức 2 (Đạt: 5-6đ)",
+                                "desc": "Nêu được P/E thấp chưa chắc đã rẻ nhưng lý giải còn sơ sài; chỉ nêu được 1 nguyên nhân hợp lý."
+                        },
+                        {
+                                "level": "Mức 1 (Chưa đạt: 0-4đ)",
+                                "desc": "Đồng tình máy móc với nhận định của nhà đầu tư hoặc phản biện mơ hồ, thiếu căn cứ tài chính."
+                        }
+                ],
+                "explanation": "Hướng dẫn chấm: Phản biện tính võ đoán của từ 'chắc chắn' và 'an toàn tuyệt đối'. Cổ phiếu P/E thấp thường bị thị trường chiết khấu vì chất lượng tài sản kém, ban điều hành thiếu minh bạch, doanh nghiệp đang ở cuối chu kỳ sản phẩm hoặc có khoản lợi nhuận thanh lý bất thường không lặp lại."
+        },
+        {
+                "id": 48,
+                "group": "Nhóm 5: Phân tích tình huống và phản biện",
+                "bloom": "Đánh giá",
+                "type": "essay",
+                "text": "Kiểm chứng tính nhạy cảm của các giả định trong mô hình định giá DCF: Tại sao nói kết quả định giá cổ phiếu theo mô hình Chiết khấu dòng tiền (DCF) chịu rủi ro rất lớn từ 'Hiệu ứng rác vào, rác ra' (Garbage in, Garbage out)? Trình bày tác động của hai giả định: tốc độ tăng trưởng dài hạn (g) và chi phí vốn bình quân (WACC) đối với giá trị tận cùng (Terminal Value); đề xuất giải pháp kỹ thuật giúp nhà phân tích kiểm soát tính chủ quan này.",
+                "rubric": [
+                        {
+                                "level": "Mức 4 (Xuất sắc: 9-10đ)",
+                                "desc": "Giải thích rõ bản chất nhạy cảm của mô hình DCF với công thức Terminal Value TV = FCFF(n+1) / (WACC - g); chứng minh tăng g hoặc giảm WACC sẽ thổi phồng định giá; đề xuất 2 giải pháp định lượng chuyên nghiệp (Ma trận độ nhạy 2 chiều và mô phỏng Monte Carlo kết hợp đối chiếu so sánh)."
+                        },
+                        {
+                                "level": "Mức 3 (Khá: 7-8đ)",
+                                "desc": "Hiểu được tác động của g và WACC; nêu được ma trận độ nhạy; diễn giải tương đối đầy đủ."
+                        },
+                        {
+                                "level": "Mức 2 (Đạt: 5-6đ)",
+                                "desc": "Biết rằng DCF phụ thuộc vào giả định nhưng chưa phân tích được công thức và chưa đề xuất được giải pháp định lượng cụ thể."
+                        },
+                        {
+                                "level": "Mức 1 (Chưa đạt: 0-4đ)",
+                                "desc": "Không hiểu bản chất của Terminal Value, g và WACC."
+                        }
+                ],
+                "explanation": "Hướng dẫn chấm: Vì Terminal Value chiếm phần lớn giá trị doanh nghiệp, mẫu số (WACC - g) quyết định mức bội số ngầm định. Cần chỉ rõ giải pháp ma trận độ nhạy với các kịch bản WACC và g khác nhau để xác định khoảng giá trị hợp lý thay vì một mức giá đơn lẻ."
+        },
+        {
+                "id": 49,
+                "group": "Nhóm 5: Phân tích tình huống và phản biện",
+                "bloom": "Phân tích",
+                "type": "essay",
+                "text": "Nhận diện rủi ro từ thủ thuật vốn hóa chi phí (Capitalization of Expenses): Doanh nghiệp chuyển một khoản chi phí nghiên cứu phát triển (R&D) và chi phí lãi vay phát sinh trong kỳ trị giá 80 tỷ đồng vào mục 'Tài sản dở dang dài hạn' thay vì hạch toán vào 'Chi phí trong kỳ' trên Báo cáo kết quả kinh doanh. Hãy phân tích tác động của thủ thuật kế toán này lên Lợi nhuận, Bảng cân đối kế toán và Dòng tiền; đồng thời nêu cách điều chỉnh lại các chỉ số khi định giá.",
+                "rubric": [
+                        {
+                                "level": "Mức 4 (Xuất sắc: 9-10đ)",
+                                "desc": "Phân tích toàn diện 3 tác động: (1) Thổi phồng lợi nhuận kế toán trong kỳ thêm 80 tỷ; (2) Làm phình to tài sản trên Bảng CĐKT; (3) Chuyển dòng tiền chi ra từ CFO sang CFI (Capex), tạo ảo giác dòng tiền kinh doanh lành mạnh; hướng dẫn trừ ngược lại chi phí để tính Normalized ROE/EPS."
+                        },
+                        {
+                                "level": "Mức 3 (Khá: 7-8đ)",
+                                "desc": "Nêu được tác động làm tăng lợi nhuận và tăng tài sản; có nhắc tới tác động dòng tiền; hướng dẫn điều chỉnh hợp lý."
+                        },
+                        {
+                                "level": "Mức 2 (Đạt: 5-6đ)",
+                                "desc": "Nhận biết được lợi nhuận bị tăng ảo nhưng chưa phân tích được tác động sang dòng tiền và tài sản."
+                        },
+                        {
+                                "level": "Mức 1 (Chưa đạt: 0-4đ)",
+                                "desc": "Không phân biệt được giữa việc vốn hóa tài sản và ghi nhận chi phí trong kỳ."
+                        }
+                ],
+                "explanation": "Hướng dẫn chấm: Vốn hóa chi phí là kỹ thuật kế toán trì hoãn việc ghi nhận chi phí. Lợi nhuận trước thuế tăng thêm 80 tỷ. Trên Báo cáo LCTT, khoản chi này được xếp vào dòng tiền đầu tư Capex thay vì chi phí hoạt động kinh doanh, làm đẹp chỉ số CFO. Nhà phân tích phải điều chỉnh trừ lại chi phí này khi chuẩn hóa lợi nhuận."
+        },
+        {
+                "id": 50,
+                "group": "Nhóm 5: Phân tích tình huống và phản biện",
+                "bloom": "Đánh giá",
+                "type": "essay",
+                "text": "Kịch bản quản trị và tái cấu trúc áp lực nợ ngắn hạn: Công ty Cổ phần Thương mại X có khoản nợ vay ngân hàng ngắn hạn 120 tỷ đồng sẽ đáo hạn trong 45 ngày tới. Hiện tại số dư tiền mặt của công ty chỉ có 25 tỷ đồng, dòng tiền hoạt động kinh doanh quý gần nhất bị âm 15 tỷ đồng, trong khi hàng tồn kho ứ đọng lên tới 180 tỷ đồng. Với vai trò cố vấn tài chính, hãy đề xuất 3 giải pháp tình huống ngắn hạn khả thi để công ty vượt qua rủi ro thanh khoản trước mắt và 1 giải pháp dài hạn về cơ cấu nguồn vốn.",
+                "rubric": [
+                        {
+                                "level": "Mức 4 (Xuất sắc: 9-10đ)",
+                                "desc": "Đề xuất 3 giải pháp ngắn hạn thực tế: (1) Đàm phán gia hạn kỳ hạn nợ hoặc đảo nợ có tài sản bảo đảm; (2) Giải phóng hàng tồn kho bằng chiết khấu giá thanh lý nhanh thu tiền mặt; (3) Thu hồi quyết liệt các khoản phải thu ngắn hạn và đàm phán giãn thanh toán với nhà cung cấp. Giải pháp dài hạn: Tái cấu trúc kỳ hạn nợ sang dài hạn hoặc phát hành cổ phiếu tăng vốn chủ, siết chặt quản trị vốn lưu động."
+                        },
+                        {
+                                "level": "Mức 3 (Khá: 7-8đ)",
+                                "desc": "Nêu được 2-3 giải pháp ngắn hạn và 1 giải pháp dài hạn hợp lý, khả thi."
+                        },
+                        {
+                                "level": "Mức 2 (Đạt: 5-6đ)",
+                                "desc": "Đề xuất được giải pháp nhưng mang tính lý thuyết, thiếu tính khả thi trong thời hạn 45 ngày cấp bách."
+                        },
+                        {
+                                "level": "Mức 1 (Chưa đạt: 0-4đ)",
+                                "desc": "Đề xuất thiếu cơ sở tài chính như đi vay nóng lãi suất cao hoặc tuyên bố phá sản ngay lập tức."
+                        }
+                ],
+                "explanation": "Hướng dẫn chấm: Sinh viên cần đưa ra các giải pháp tình huống mang tính khả thi cao trong thời hạn 45 ngày: giải phóng hàng tồn kho nhanh, đàm phán cơ cấu nợ ngân hàng, thu hồi nợ khách hàng. Về dài hạn, cần khắc phục nguyên nhân cốt lõi là mất cân đối kỳ hạn nguồn vốn."
+        }
+];
+
+        let currentMode = 'test'; // 'test' (10 questions, 25 mins) or 'practice' (50 questions)
+        let activeQuestions = [];
+        let userAnswers = {}; // { qId: selectedOptionIndex or essayText }
+        let essayScores = {}; // { qId: score 1-4 }
+        let flaggedQuestions = new Set();
+        let timerInterval = null;
+        let timeRemaining = 12 * 60; // 12 minutes exam time (within 25m total activity)
+        let isSubmitted = false;
+
+        // Initialize application on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initAssessment('test');
+        });
+
+        function switchMode(mode) {
+            if (!isSubmitted && Object.keys(userAnswers).length > 0) {
+                if (!confirm('Bạn có chắc chắn muốn chuyển chế độ? Toàn bộ tiến trình làm bài hiện tại sẽ được cài đặt lại.')) {
+                    return;
+                }
+            }
+            document.getElementById('btnModeTest').classList.toggle('active', mode === 'test');
+            document.getElementById('btnModePractice').classList.toggle('active', mode === 'practice');
+            initAssessment(mode);
+        }
+
+        function initAssessment(mode) {
+            currentMode = mode;
+            userAnswers = {};
+            essayScores = {};
+            flaggedQuestions.clear();
+            isSubmitted = false;
+
+            // Reset UI elements
+            document.getElementById('resultsDashboard').classList.remove('show');
+            document.getElementById('btnSubmitQuiz').style.display = 'inline-flex';
+            document.getElementById('btnResetQuiz').style.display = 'none';
+            document.getElementById('btnPrintReport').style.display = 'none';
+            
+            if (timerInterval) clearInterval(timerInterval);
+
+            if (mode === 'test') {
+                // Select 10 questions: 2 from each of the 5 competency groups (9 MCQs + 1 Essay)
+                activeQuestions = selectBalancedExamQuestions();
+                document.getElementById('timerBox').style.display = 'flex';
+                document.getElementById('paletteCount').textContent = '(10 câu)';
+                timeRemaining = 12 * 60;
+                startTimer();
+            } else {
+                // Practice mode: all 50 questions
+                activeQuestions = [...BANK_50];
+                document.getElementById('timerBox').style.display = 'none';
+                document.getElementById('paletteCount').textContent = '(50 câu)';
+            }
+
+            renderPalette();
+            renderQuestions();
+            updateProgress();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function selectBalancedExamQuestions() {
+            // Group by 5 groups
+            const groups = {};
+            BANK_50.forEach(q => {
+                if (!groups[q.group]) groups[q.group] = [];
+                groups[q.group].push(q);
+            });
+
+            const selected = [];
+            // Group 1: pick 2 MCQs (e.g. Q2, Q4)
+            selected.push(groups['Nhóm 1: Đọc hiểu Báo cáo tài chính'][1]);
+            selected.push(groups['Nhóm 1: Đọc hiểu Báo cáo tài chính'][3]);
+            // Group 2: pick 2 MCQs (e.g. Q13 DuPont, Q14 DuPont Leverage)
+            selected.push(groups['Nhóm 2: Phân tích các chỉ số tài chính'][2]);
+            selected.push(groups['Nhóm 2: Phân tích các chỉ số tài chính'][3]);
+            // Group 3: pick 2 MCQs (e.g. Q21 CFO calculation, Q23 Quality of Earnings)
+            selected.push(groups['Nhóm 3: Dòng tiền, đòn bẩy và rủi ro'][0]);
+            selected.push(groups['Nhóm 3: Dòng tiền, đòn bẩy và rủi ro'][2]);
+            // Group 4: pick 2 MCQs (e.g. Q34 WACC calculation, Q36 DCF Terminal Value)
+            selected.push(groups['Nhóm 4: Định giá cổ phiếu'][3]);
+            selected.push(groups['Nhóm 4: Định giá cổ phiếu'][5]);
+            // Group 5: pick 1 MCQ (Q41 Cyclical Value trap) + 1 Essay (Q46 DuPont & Cash flow crisis)
+            selected.push(groups['Nhóm 5: Phân tích tình huống và phản biện'][0]); // MCQ 41
+            selected.push(groups['Nhóm 5: Phân tích tình huống và phản biện'][5]); // Essay 46
+
+            return selected;
+        }
+
+        function startTimer() {
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                if (timeRemaining <= 120) {
+                    document.getElementById('timerBox').classList.add('timer-warning');
+                }
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    alert('Hết thời gian làm bài (12 phút)! Hệ thống sẽ tự động thu bài và chấm điểm.');
+                    submitAssessment();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            document.getElementById('timeDisplay').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function renderPalette() {
+            const grid = document.getElementById('paletteGrid');
+            grid.innerHTML = '';
+            activeQuestions.forEach((q, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'p-btn';
+                btn.id = `palette-btn-${q.id}`;
+                btn.textContent = idx + 1;
+                btn.onclick = () => {
+                    const el = document.getElementById(`q-box-${q.id}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                };
+                grid.appendChild(btn);
+            });
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = '';
+
+            activeQuestions.forEach((q, index) => {
+                const item = document.createElement('div');
+                item.className = 'question-item';
+                item.id = `q-box-${q.id}`;
+
+                let html = `
+                    <div class="q-header">
+                        <div class="q-number">
+                            <span>Câu ${index + 1}</span>
+                            <span class="q-tag">${q.group.split(':')[0]}</span>
+                            <span class="q-tag" style="background:#fefcbf; color:#744210;">Mức Bloom: ${q.bloom}</span>
+                        </div>
+                        <button class="btn btn-outline" style="padding:3px 10px; font-size:0.75rem;" onclick="toggleFlag(${q.id})">
+                            <span id="flag-text-${q.id}">🚩 Đánh dấu</span>
+                        </button>
+                    </div>
+                    <div class="q-text">${q.text}</div>
+                `;
+
+                if (q.type === 'mcq') {
+                    html += `<div class="options-list">`;
+                    q.options.forEach((opt, optIdx) => {
+                        html += `
+                            <label class="option-label" id="opt-label-${q.id}-${optIdx}">
+                                <input type="radio" class="option-input" name="question-${q.id}" value="${optIdx}" 
+                                    onchange="selectOption(${q.id}, ${optIdx})" ${userAnswers[q.id] === optIdx ? 'checked' : ''}
+                                    ${isSubmitted ? 'disabled' : ''}>
+                                <span>${opt}</span>
+                            </label>
+                        `;
+                    });
+                    html += `</div>`;
+                } else if (q.type === 'essay') {
+                    html += `
+                        <textarea class="essay-textarea" id="essay-input-${q.id}" placeholder="Nhập câu trả lời phân tích và lập luận của bạn tại đây (khoảng 100 - 250 từ)..." 
+                            oninput="inputEssay(${q.id}, this.value)" ${isSubmitted ? 'readonly' : ''}>${userAnswers[q.id] || ''}</textarea>
+                        
+                        <div class="rubric-container">
+                            <div class="rubric-title">📊 Bộ tiêu chí Rubric đánh giá câu hỏi tự luận (Giảng viên / Sinh viên chấm điểm):</div>
+                            <div class="rubric-grid">
+                    `;
+                    q.rubric.forEach((rb, rIdx) => {
+                        const levelScore = 4 - rIdx;
+                        const isActive = essayScores[q.id] === levelScore;
+                        html += `
+                            <div class="rubric-cell ${isActive ? 'active' : ''}" id="rubric-cell-${q.id}-${levelScore}" onclick="selectRubric(${q.id}, ${levelScore})">
+                                <span class="rubric-level">${rb.level}</span>
+                                <span>${rb.desc}</span>
+                            </div>
+                        `;
+                    });
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Pedagogical explanation box
+                html += `
+                    <div class="explanation-box ${isSubmitted || currentMode === 'practice' && userAnswers[q.id] !== undefined ? 'show' : ''}" id="expl-${q.id}">
+                        <div class="explanation-title">💡 Giải thích sư phạm và phân tích chuyên môn:</div>
+                        <div>${q.explanation}</div>
+                    </div>
+                `;
+
+                item.innerHTML = html;
+                container.appendChild(item);
+            });
+        }
+
+        function selectOption(qId, optIdx) {
+            userAnswers[qId] = optIdx;
+            
+            // Highlight selected option
+            const q = BANK_50.find(item => item.id === qId);
+            q.options.forEach((_, idx) => {
+                const el = document.getElementById(`opt-label-${qId}-${idx}`);
+                if (el) el.classList.toggle('selected', idx === optIdx);
+            });
+
+            // Update palette button
+            const pBtn = document.getElementById(`palette-btn-${qId}`);
+            if (pBtn) pBtn.classList.add('answered');
+
+            // If in practice mode, reveal feedback immediately
+            if (currentMode === 'practice') {
+                const expl = document.getElementById(`expl-${qId}`);
+                if (expl) expl.classList.add('show');
+                const correct = q.answer === optIdx;
+                const optEl = document.getElementById(`opt-label-${qId}-${optIdx}`);
+                if (optEl) {
+                    optEl.classList.add(correct ? 'correct' : 'wrong');
+                }
+                const correctEl = document.getElementById(`opt-label-${qId}-${q.answer}`);
+                if (correctEl) correctEl.classList.add('correct');
+            }
+
+            updateProgress();
+        }
+
+        function inputEssay(qId, text) {
+            userAnswers[qId] = text;
+            const pBtn = document.getElementById(`palette-btn-${qId}`);
+            if (pBtn) {
+                if (text.trim().length > 0) pBtn.classList.add('answered');
+                else pBtn.classList.remove('answered');
+            }
+            updateProgress();
+        }
+
+        function selectRubric(qId, score) {
+            essayScores[qId] = score;
+            for (let i = 1; i <= 4; i++) {
+                const cell = document.getElementById(`rubric-cell-${qId}-${i}`);
+                if (cell) cell.classList.toggle('active', i === score);
+            }
+            if (isSubmitted) {
+                calculateAndRenderResults();
+            }
+        }
+
+        function toggleFlag(qId) {
+            const pBtn = document.getElementById(`palette-btn-${qId}`);
+            const textEl = document.getElementById(`flag-text-${qId}`);
+            if (flaggedQuestions.has(qId)) {
+                flaggedQuestions.delete(qId);
+                if (pBtn) pBtn.classList.remove('flagged');
+                if (textEl) textEl.textContent = '🚩 Đánh dấu';
+            } else {
+                flaggedQuestions.add(qId);
+                if (pBtn) pBtn.classList.add('flagged');
+                if (textEl) textEl.textContent = '⭐ Bỏ đánh dấu';
+            }
+        }
+
+        function updateProgress() {
+            const answeredCount = Object.keys(userAnswers).filter(k => {
+                const val = userAnswers[k];
+                return typeof val === 'number' || (typeof val === 'string' && val.trim().length > 0);
+            }).length;
+            const total = activeQuestions.length;
+            const pct = Math.round((answeredCount / total) * 100);
+
+            document.getElementById('progressText').textContent = `Tiến độ làm bài: ${answeredCount}/${total} câu`;
+            document.getElementById('progressPercent').textContent = `${pct}%`;
+            document.getElementById('progressFill').style.width = `${pct}%`;
+        }
+
+        function submitAssessment() {
+            if (timerInterval) clearInterval(timerInterval);
+            isSubmitted = true;
+
+            // Check unanswered
+            const unanswered = activeQuestions.filter(q => userAnswers[q.id] === undefined || userAnswers[q.id] === '');
+            if (unanswered.length > 0) {
+                if (!confirm(`Bạn còn ${unanswered.length} câu chưa hoàn thành. Bạn có chắc chắn muốn nộp bài đánh giá không?`)) {
+                    if (currentMode === 'test') startTimer();
+                    isSubmitted = false;
+                    return;
+                }
+            }
+
+            // Lock inputs and show explanations
+            document.querySelectorAll('.option-input').forEach(input => input.disabled = true);
+            document.querySelectorAll('.essay-textarea').forEach(area => area.readOnly = true);
+            document.querySelectorAll('.explanation-box').forEach(box => box.classList.add('show'));
+
+            // Show reset and print buttons
+            document.getElementById('btnSubmitQuiz').style.display = 'none';
+            document.getElementById('btnResetQuiz').style.display = 'inline-flex';
+            document.getElementById('btnPrintReport').style.display = 'inline-flex';
+
+            // Grade MCQs visually
+            activeQuestions.forEach(q => {
+                const pBtn = document.getElementById(`palette-btn-${q.id}`);
+                if (q.type === 'mcq') {
+                    const userChoice = userAnswers[q.id];
+                    const isCorrect = userChoice === q.answer;
+                    
+                    if (pBtn) {
+                        pBtn.classList.remove('answered', 'flagged');
+                        pBtn.classList.add(isCorrect ? 'correct' : 'wrong');
+                    }
+
+                    if (userChoice !== undefined) {
+                        const userLabel = document.getElementById(`opt-label-${q.id}-${userChoice}`);
+                        if (userLabel) userLabel.classList.add(isCorrect ? 'correct' : 'wrong');
+                    }
+                    const correctLabel = document.getElementById(`opt-label-${q.id}-${q.answer}`);
+                    if (correctLabel) correctLabel.classList.add('correct');
+                } else if (q.type === 'essay') {
+                    // Default rubric score to Level 3 (Khá) if not yet scored
+                    if (!essayScores[q.id]) {
+                        selectRubric(q.id, 3);
+                    }
+                    if (pBtn) {
+                        pBtn.classList.remove('flagged');
+                        pBtn.classList.add('answered');
+                    }
+                }
+            });
+
+            calculateAndRenderResults();
+            document.getElementById('resultsDashboard').classList.add('show');
+            document.getElementById('resultsDashboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function calculateAndRenderResults() {
+            let mcqCount = 0;
+            let mcqCorrect = 0;
+            let essayCount = 0;
+            let essayTotalScaled = 0;
+
+            const groupStats = {
+                'Nhóm 1: Đọc hiểu Báo cáo tài chính': { total: 0, correct: 0 },
+                'Nhóm 2: Phân tích các chỉ số tài chính': { total: 0, correct: 0 },
+                'Nhóm 3: Dòng tiền, đòn bẩy và rủi ro': { total: 0, correct: 0 },
+                'Nhóm 4: Định giá cổ phiếu': { total: 0, correct: 0 },
+                'Nhóm 5: Phân tích tình huống và phản biện': { total: 0, correct: 0 }
+            };
+
+            activeQuestions.forEach(q => {
+                const g = groupStats[q.group];
+                if (g) g.total++;
+
+                if (q.type === 'mcq') {
+                    mcqCount++;
+                    if (userAnswers[q.id] === q.answer) {
+                        mcqCorrect++;
+                        if (g) g.correct++;
+                    }
+                } else if (q.type === 'essay') {
+                    essayCount++;
+                    const level = essayScores[q.id] || 3;
+                    // Scale rubric 1-4 to 0-10: Level 4=10, 3=8, 2=5.5, 1=3
+                    const scaled = level === 4 ? 10 : level === 3 ? 8 : level === 2 ? 5.5 : 3;
+                    essayTotalScaled += scaled;
+                    if (g) {
+                        g.correct += (scaled / 10); // fractional weight
+                    }
+                }
+            });
+
+            let finalGrade = 0;
+            if (currentMode === 'test') {
+                // In 10-question test: 9 MCQs (0.8 pts each = 7.2) + 1 Essay (2.8 pts max) = 10 pts scale
+                const mcqGrade = (mcqCorrect / 9) * 7.2;
+                const essayGrade = (essayTotalScaled / 10) * 2.8;
+                finalGrade = mcqGrade + essayGrade;
+            } else {
+                // Practice 50 questions: 45 MCQs (0.18 pt each = 8.1) + 5 Essays (0.38 pt each = 1.9) = 10 pts scale
+                const mcqGrade = (mcqCorrect / 45) * 8.0;
+                const essayGrade = (essayTotalScaled / 50) * 2.0;
+                finalGrade = mcqGrade + essayGrade;
+            }
+
+            finalGrade = Math.min(10, Math.max(0, finalGrade));
+            document.getElementById('finalScoreDisplay').textContent = finalGrade.toFixed(1) + '/10';
+
+            let levelText = '';
+            let levelColor = '';
+            if (finalGrade >= 8.5) {
+                levelText = 'Xuất sắc: Năng lực đọc hiểu và nhận diện rủi ro định giá rất vững vàng';
+                levelColor = 'var(--success)';
+            } else if (finalGrade >= 7.0) {
+                levelText = 'Khá: Nắm vững các chỉ số cơ bản, cần rèn luyện thêm tính nhạy cảm mô hình';
+                levelColor = '#2b6cb0';
+            } else if (finalGrade >= 5.0) {
+                levelText = 'Đạt yêu cầu: Cần củng cố phân tích dòng tiền và mô hình DuPont';
+                levelColor = 'var(--accent)';
+            } else {
+                levelText = 'Cần hỗ trợ can thiệp: Hổng kiến thức nền tảng về mối quan hệ giữa BCTC và Định giá';
+                levelColor = 'var(--danger)';
+            }
+            const elLvl = document.getElementById('finalLevelDisplay');
+            elLvl.textContent = levelText;
+            elLvl.style.color = levelColor;
+
+            // Render competency breakdown cards
+            const compGrid = document.getElementById('competencyBreakdown');
+            compGrid.innerHTML = '';
+            let weakestGroup = '';
+            let minPct = 101;
+
+            Object.keys(groupStats).forEach(groupName => {
+                const stat = groupStats[groupName];
+                if (stat.total === 0) return;
+                const pct = Math.round((stat.correct / stat.total) * 100);
+                if (pct < minPct) {
+                    minPct = pct;
+                    weakestGroup = groupName;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'comp-card';
+                card.innerHTML = `
+                    <div class="comp-header">
+                        <span>${groupName.replace('Nhóm ', 'N')}</span>
+                        <span style="color:${pct >= 75 ? 'var(--success)' : pct >= 50 ? 'var(--primary-light)' : 'var(--danger)'};">${pct}%</span>
+                    </div>
+                    <div class="comp-bar">
+                        <div class="comp-bar-fill" style="width:${pct}%; background:${pct >= 75 ? 'var(--success)' : pct >= 50 ? 'var(--primary-light)' : 'var(--danger)'};"></div>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); display:flex; justify-content:space-between;">
+                        <span>Đúng: ${stat.correct.toFixed(1)}/${stat.total}</span>
+                        <span>${pct >= 75 ? 'Đạt chuẩn' : 'Cần củng cố'}</span>
+                    </div>
+                `;
+                compGrid.appendChild(card);
+            });
+
+            // Pedagogical advice
+            let advice = '';
+            if (weakestGroup.includes('Nhóm 1')) {
+                advice = 'Sinh viên đang nhầm lẫn giữa nguyên tắc dồn tích và dòng tiền thực tế, hoặc chưa chú ý Thuyết minh BCTC. Giảng viên cần tổ chức bài tập đối chiếu giữa Khoản phải thu và Doanh thu trên báo cáo thực tế.';
+            } else if (weakestGroup.includes('Nhóm 2')) {
+                advice = 'Điểm nghẽn nhận thức nằm ở kỹ năng phân tích DuPont và chỉ số sinh lời ROE/ROIC. Sinh viên dễ bị đánh lừa bởi ROE tăng do đòn bẩy nợ. Cần bổ sung ví dụ thực tế về rủi ro đòn bẩy nợ.';
+            } else if (weakestGroup.includes('Nhóm 3')) {
+                advice = 'Khả năng đánh giá rủi ro dòng tiền và chỉ số thanh khoản nhanh còn yếu. Cần luyện tập thêm phương pháp tính CFO gián tiếp và cách phát hiện tình trạng lợi nhuận trên giấy.';
+            } else if (weakestGroup.includes('Nhóm 4')) {
+                advice = 'Sinh viên tính toán tốt công thức định giá cơ bản nhưng chưa kiểm soát được tính nhạy cảm của WACC và tốc độ tăng trưởng dài hạn g trong mô hình DCF. Cần hướng dẫn lập Bảng độ nhạy 2 chiều.';
+            } else {
+                advice = 'Sinh viên còn thói quen tư duy tuyệt đối hóa một chỉ số (bẫy P/E thấp). Cần tăng cường các bài tập phản biện tình huống thực tiễn và phân tích bối cảnh ngành chu kỳ.';
+            }
+            document.getElementById('adviceContent').innerHTML = `
+                <p><strong>Điểm nghẽn nhận thức chung:</strong> ${weakestGroup} (Tỷ lệ đạt: ${minPct}%).</p>
+                <p style="margin-top:6px;"><strong>Hành động sư phạm đề xuất:</strong> ${advice}</p>
+            `;
+        }
+
+        function resetAssessment() {
+            if (confirm('Bạn có muốn làm lại bài kiểm tra với trạng thái mới không?')) {
+                initAssessment(currentMode);
+            }
+        }
+    </script>
+</body>
+</html>
